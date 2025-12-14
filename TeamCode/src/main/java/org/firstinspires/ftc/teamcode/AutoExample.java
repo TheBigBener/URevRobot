@@ -4,7 +4,6 @@ import static com.qualcomm.robotcore.hardware.DcMotor.ZeroPowerBehavior.BRAKE;
 
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
-import com.qualcomm.robotcore.hardware.CRServo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.PIDFCoefficients;
@@ -15,16 +14,17 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 
 @Autonomous(name="DecodeAuto", group="Decode")
-public  class DecodeAutoRedBack extends OpMode {
+public  class AutoExample extends OpMode {
     private DcMotorEx launcher;
+    double launcher_power = 1.0;
     // launcher velocities (tune to your hardware)
-    final double LAUNCHER_TARGET_VELOCITY = 2150.0;
-    final double LAUNCHER_MIN_VELOCITY = 2050.0;
+    final double LAUNCHER_TARGET_VELOCITY = 1850.0;
+    final double LAUNCHER_MIN_VELOCITY = 1750.0;
 
     double shotsToFire = 3;
-    double TIME_BETWEEN_SHOTS = 3.0;    // reduced cycle time (tune)
-    double boxServoTime = 0.7;          // servo dwell time (tune)
-    double robotRotationAngle = 42.5;
+    double TIME_BETWEEN_SHOTS = 1.0;    // reduced cycle time (tune)
+    double boxServoTime = 0.5;          // servo dwell time (tune)
+
     boolean driveOffLine = true;
 
     private ElapsedTime shotTimer = new ElapsedTime();
@@ -34,6 +34,7 @@ public  class DecodeAutoRedBack extends OpMode {
 
     // motion constants (tune these distances to match your robot and field)
     final double DRIVE_SPEED = 0.5;
+    double robotRotationAngle = -45.0;
     final double ROTATE_SPEED = 1.0;
     final double WHEEL_DIAMETER_MM = 96;
     final double ENCODER_TICKS_PER_REV = 537.7;
@@ -52,21 +53,18 @@ public  class DecodeAutoRedBack extends OpMode {
     private DcMotorEx backRight = null;
     private DcMotor intakeMotor = null;
     private Servo boxServo = null;
-    CRServo leftFeeder;
-    CRServo rightFeeder;
 
     // launch state machine
-    private enum LaunchState { IDLE, PREPARE, PREPARE2, LAUNCH }
+    private enum LaunchState { IDLE, PREPARE, LAUNCH }
     private LaunchState launchState;
 
     // autonomous high-level states
     private enum AutonomousState {
-        DRIVEALITTLE,
-        POINT_TO_SHOOT,
+        DRIVE_TO_SHOOT,
         LAUNCH,
         WAIT_FOR_LAUNCH,
-        RETURN_TO_MIDDLE,
         ROTATING,
+        RETURN_TO_MIDDLE,
         COMPLETE
     }
     private AutonomousState autonomousState;
@@ -77,7 +75,7 @@ public  class DecodeAutoRedBack extends OpMode {
 
     @Override
     public void init() {
-        autonomousState = AutonomousState.DRIVEALITTLE;
+        autonomousState = AutonomousState.DRIVE_TO_SHOOT;
         launchState = LaunchState.IDLE;
 
         // Hardware mapping
@@ -87,8 +85,6 @@ public  class DecodeAutoRedBack extends OpMode {
         backRight = hardwareMap.get(DcMotorEx.class, "backRight");
         intakeMotor = hardwareMap.dcMotor.get("intakeMotor");
         launcher = hardwareMap.get(DcMotorEx.class, "launcherMotor");
-        leftFeeder = hardwareMap.get(CRServo.class, "leftFeeder");
-        rightFeeder = hardwareMap.get(CRServo.class, "rightFeeder");
         boxServo = hardwareMap.get(Servo.class, "boxServo");
 
         // Motor directions
@@ -104,6 +100,7 @@ public  class DecodeAutoRedBack extends OpMode {
         backLeft.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
         frontRight.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
         backRight.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+        intakeMotor.setMode(DcMotor.RunMode.STOP_AND_RESET_ENCODER);
 
         frontLeft.setZeroPowerBehavior(BRAKE);
         backLeft.setZeroPowerBehavior(BRAKE);
@@ -124,10 +121,10 @@ public  class DecodeAutoRedBack extends OpMode {
     public void init_loop() {
         if (gamepad1.x) {
             driveOffLine = false;
-        } else if (gamepad1.y) {
+        } else {
             driveOffLine = true;
         }
-        telemetry.addData("PRESS X", " TO NOT DRIVE OFF THE LINE! (and PRESS Y TO DRIVE OFF LINE IF X WAS ALREADY PRESSED.");
+        telemetry.addData("Press X", " to not drive off the line!");
         telemetry.addData("Drive off line: ", driveOffLine);
         telemetry.addData("Aiden", " sucks >:(");
     }
@@ -143,19 +140,10 @@ public  class DecodeAutoRedBack extends OpMode {
         telemetry.addData("State", autonomousState);
         telemetry.addData("LaunchState", launchState);
         switch (autonomousState) {
-            case DRIVEALITTLE:
-                if (drive(DRIVE_SPEED, 6.0, DistanceUnit.INCH, 0.5)) {
-                    resetDriveFlags();
-                    autonomousState = AutonomousState.POINT_TO_SHOOT;
-                }
-                break;
-            case POINT_TO_SHOOT:
+            case DRIVE_TO_SHOOT:
                 // Drive forward from start to shooting spot (distance positive = forward)
-                if(rotate(ROTATE_SPEED, robotRotationAngle, AngleUnit.DEGREES,1)){
-                    frontLeft.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-                    frontRight.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-                    backLeft.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
-                    backRight.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
+                if (drive(DRIVE_SPEED, SHOOT_POSITION_DISTANCE_IN, DistanceUnit.INCH, 0.5)) {
+                    // reached shoot position; reset drive flags for next movement
                     resetDriveFlags();
                     // prepare launcher sequence
                     autonomousState = AutonomousState.LAUNCH;
@@ -189,14 +177,13 @@ public  class DecodeAutoRedBack extends OpMode {
             case RETURN_TO_MIDDLE:
                 // Drive BACK toward middle of field; here we use a positive distance to drive forward
                 // because our drive() interprets "distance" direction consistently per call.
-                if (drive(DRIVE_SPEED, 36.0, DistanceUnit.INCH, 0.5)) {
+                if (drive(DRIVE_SPEED, -RETURN_TO_MIDDLE_DISTANCE_IN, DistanceUnit.INCH, 0.5)) {
                     resetDriveFlags();
                     autonomousState = AutonomousState.COMPLETE;
                 }
                 break;
-
             case ROTATING:
-                if(rotate(ROTATE_SPEED, -robotRotationAngle, AngleUnit.DEGREES,1)){
+                if(rotate(ROTATE_SPEED, robotRotationAngle, AngleUnit.DEGREES,1)){
                     frontLeft.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
                     frontRight.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
                     backLeft.setMode(DcMotorEx.RunMode.STOP_AND_RESET_ENCODER);
@@ -218,8 +205,6 @@ public  class DecodeAutoRedBack extends OpMode {
                 backRight.setPower(0);
                 intakeMotor.setPower(0);
                 launcher.setVelocity(0);
-                leftFeeder.setPower(0.0);
-                rightFeeder.setPower(0.0);
                 // nothing else to do
                 break;
         }
@@ -233,7 +218,7 @@ public  class DecodeAutoRedBack extends OpMode {
     }
 
     // Launch routine: request shotRequested=true one time to start a shot
-boolean launch(boolean shotRequested) {
+    boolean launch(boolean shotRequested) {
         switch (launchState) {
             case IDLE:
                 if (shotRequested) {
@@ -247,45 +232,32 @@ boolean launch(boolean shotRequested) {
                 // Spin up launcher
                 launcher.setVelocity(LAUNCHER_TARGET_VELOCITY);
                 // Wait for either sufficient velocity OR a short timeout (failsafe)
-
-                if (launcher.getVelocity() > LAUNCHER_MIN_VELOCITY || launcherSpinupTimer.seconds() > 5.0) {
-                    boxServo.setPosition(0.85); // open box to feed
-                    boxServoTimer.reset();
-                    shotTimer.reset();
-                    launchState = LaunchState.PREPARE2;
-                }
-                break;
-            case PREPARE2:
-                intakeMotor.setPower(1.0);
-                boxServo.setPosition(0.85); // open box to feed
-                leftFeeder.setPower(-1.0);
-                rightFeeder.setPower(1.0);
-                if (boxServoTimer.seconds() > 2.5) {
-                    boxServoTimer.reset();
-                    shotTimer.reset();
+                if (launcher.getVelocity() > LAUNCHER_MIN_VELOCITY || launcherSpinupTimer.seconds() > 1.5) {
                     launchState = LaunchState.LAUNCH;
+                    intakeMotor.setPower(1.0);
+                    boxServo.setPosition(0.6); // open box to feed
+                    boxServoTimer.reset();
+                    shotTimer.reset();
                 }
                 break;
+
             case LAUNCH:
+                // Wait for servo to move and ball to feed
                 if (boxServoTimer.seconds() > boxServoTime) {
-                    // Open box back up after ts is shot
+                    // stop intake and close box briefly
+                    intakeMotor.setPower(0.0);
                     boxServo.setPosition(0.85);
+
                     // wait between shots
                     if (shotTimer.seconds() > TIME_BETWEEN_SHOTS) {
                         launchState = LaunchState.IDLE;
                         return true; // signal shot finished
                     }
-                } else {
-                    intakeMotor.setPower(0.0);
-                    leftFeeder.setPower(0.0);
-                    rightFeeder.setPower(0.0);
-                    boxServo.setPosition(0.6);
                 }
                 break;
         }
         return false;
     }
-
 
     // Drive: improved to set targets only once per entry to state
     boolean drive(double speed, double distance, DistanceUnit distanceUnit, double holdSeconds) {
@@ -368,3 +340,4 @@ boolean launch(boolean shotRequested) {
         return (driveTimer.seconds() > holdSeconds);
     }
 }
+
