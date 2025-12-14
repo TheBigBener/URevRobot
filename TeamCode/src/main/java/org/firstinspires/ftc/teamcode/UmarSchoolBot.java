@@ -4,7 +4,9 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.ColorSensor;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 
 @TeleOp
@@ -12,9 +14,12 @@ public class UmarSchoolBot extends LinearOpMode {
     private DcMotor intakeMotor;
     private DcMotor leftDrive;
     private DcMotor rightDrive;
+    private Servo clawServo;
     double leftPower;
     double rightPower;
     double linearMotor;
+    private ElapsedTime clawTimer = new ElapsedTime();
+    boolean clawDown = false;
     double speedMultiplier = 1.0;
     @Override
     public void runOpMode() {
@@ -23,11 +28,14 @@ public class UmarSchoolBot extends LinearOpMode {
         DcMotorEx leftDrive = hardwareMap.get(DcMotorEx.class, "leftDrive");
         DcMotorEx rightDrive = hardwareMap.get(DcMotorEx.class,"rightDrive");
         DcMotorEx linearMotor = hardwareMap.get(DcMotorEx.class, "linearMotor");
+        Servo clawServo = hardwareMap.get(Servo.class, "clawServo");
         // Motor directions
         leftDrive.setDirection(DcMotorEx.Direction.FORWARD);
         rightDrive.setDirection(DcMotorEx.Direction.FORWARD);
         linearMotor.setDirection(DcMotorEx.Direction.FORWARD);
-
+        
+        clawServo.setPosition(0.0);
+        
         final int CYCLE_MS = 50;
 
         waitForStart();
@@ -52,6 +60,16 @@ public class UmarSchoolBot extends LinearOpMode {
                 linearMotor.setPower(0.0); // Stop linear motor if no input
             }
 
+            if (gamepad2.a && !clawDown && clawTimer.seconds() > 0.6) {
+                clawServo.setPosition(0.4);
+                clawDown = true;
+                clawTimer.reset();
+            } else if (gamepad2.a && clawDown && clawTimer.seconds() > 0.6) {
+                clawServo.setPosition(0.0);
+                clawTimer.reset();
+                clawDown = false;
+            }
+            
             arcadeDrive(-gamepad1.right_stick_x, -gamepad1.left_stick_y);
 
             telemetry.update();
