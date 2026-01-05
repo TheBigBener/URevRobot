@@ -25,14 +25,14 @@ public class UmarSchoolBot extends LinearOpMode {
     public void runOpMode() {
         ColorSensor colorSensor;
         // Motor config
-        DcMotorEx leftDrive = hardwareMap.get(DcMotorEx.class, "leftDrive");
-        DcMotorEx rightDrive = hardwareMap.get(DcMotorEx.class,"rightDrive");
-        DcMotorEx linearMotor = hardwareMap.get(DcMotorEx.class, "linearMotor");
+        DcMotorEx leftDrive = hardwareMap.get(DcMotor.class, "leftDrive");
+        DcMotorEx rightDrive = hardwareMap.get(DcMotor.class,"rightDrive");
+        DcMotorEx linearMotor = hardwareMap.get(DcMotor.class, "linearMotor");
         Servo clawServo = hardwareMap.get(Servo.class, "clawServo");
         // Motor directions
-        leftDrive.setDirection(DcMotorEx.Direction.FORWARD);
-        rightDrive.setDirection(DcMotorEx.Direction.FORWARD);
-        linearMotor.setDirection(DcMotorEx.Direction.FORWARD);
+        leftDrive.setDirection(DcMotor.Direction.FORWARD);
+        rightDrive.setDirection(DcMotor.Direction.FORWARD);
+        linearMotor.setDirection(DcMotor.Direction.FORWARD);
         
         clawServo.setPosition(0.0);
         
@@ -45,13 +45,13 @@ public class UmarSchoolBot extends LinearOpMode {
             speedMultiplier = 0.6;
             if (gamepad1.left_trigger > 0.5) {
                 speedMultiplier *= 0.4; // Original - prev was 0.5
-                leftDrive.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
-                rightDrive.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+                leftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+                rightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
             } else {
-                leftDrive.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.FLOAT);
-                rightDrive.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.FLOAT);
+                leftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+                rightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
             }
-            linearMotor.setZeroPowerBehavior(DcMotorEx.ZeroPowerBehavior.BRAKE);
+            linearMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
             if (gamepad2.right_bumper) {
                 linearMotor.setPower(-1.0); // Reverse if right bumper pressed
             } else if (gamepad2.right_trigger > 0) {
