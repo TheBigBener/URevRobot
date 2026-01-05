@@ -11,7 +11,6 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 @TeleOp
 public class UmarSchoolBot extends LinearOpMode {
-    private DcMotor linearMotor;
     private DcMotor leftDrive;
     private DcMotor rightDrive;
     private Servo clawServo;
