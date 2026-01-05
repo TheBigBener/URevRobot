@@ -20,7 +20,7 @@ public class UmarSchoolBot extends LinearOpMode {
     double linearMotor;
     private ElapsedTime clawTimer = new ElapsedTime();
     boolean clawDown = false;
-    double speedMultiplier =  0.6;
+    double speedMultiplier =  -0.6;
     @Override
     public void runOpMode() {
         ColorSensor colorSensor;
@@ -42,7 +42,7 @@ public class UmarSchoolBot extends LinearOpMode {
         if (isStopRequested()) return;
 
         while (opModeIsActive()) {
-            speedMultiplier = 0.6;
+            speedMultiplier = -0.6;
             if (gamepad1.left_trigger > 0.5) {
                 speedMultiplier *= 0.4; // Original - prev was 0.5
                 leftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
