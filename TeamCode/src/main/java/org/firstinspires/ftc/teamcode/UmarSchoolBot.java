@@ -11,7 +11,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 
 @TeleOp
 public class UmarSchoolBot extends LinearOpMode {
-    private DcMotor intakeMotor;
+    private DcMotor linearMotor;
     private DcMotor leftDrive;
     private DcMotor rightDrive;
     private Servo clawServo;
@@ -25,9 +25,9 @@ public class UmarSchoolBot extends LinearOpMode {
     public void runOpMode() {
         ColorSensor colorSensor;
         // Motor config
-        DcMotorEx leftDrive = hardwareMap.get(DcMotor.class, "leftDrive");
-        DcMotorEx rightDrive = hardwareMap.get(DcMotor.class,"rightDrive");
-        DcMotorEx linearMotor = hardwareMap.get(DcMotor.class, "linearMotor");
+        leftDrive = hardwareMap.get(DcMotor.class, "leftDrive");
+        rightDrive = hardwareMap.get(DcMotor.class,"rightDrive");
+        linearMotor = hardwareMap.get(DcMotor.class, "linearMotor");
         Servo clawServo = hardwareMap.get(Servo.class, "clawServo");
         // Motor directions
         leftDrive.setDirection(DcMotor.Direction.FORWARD);
